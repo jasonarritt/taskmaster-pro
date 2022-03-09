@@ -1,5 +1,27 @@
 var tasks = {};
 
+//Function for auditing tasks
+var auditTask = function(taskEl) {
+  //Get date form task element
+  var date = $(taskEl).find("span").text().trim();
+  console.log(date);
+
+  //Convert to moment object set to 5:00 PM
+  var time = moment(date, "L").set("hour", 17);
+  console.log(time);
+
+  //Remove old classes from element
+  $(taskEl).removeClass("list-group-item-warning list-group-item-danger");
+
+  //Apply new class if task due date is near/past
+  if (moment().isAfter(time)) {
+    $(taskEl).addClass("list-group-item-danger");
+  } else if (Math.abs(moment().diff(time, "days")) <= 2) {
+    $(taskEl).addClass("list-group-item-warning");
+  }
+};
+
+//Function for creating tasks
 var createTask = function(taskText, taskDate, taskList) {
   // create elements that make up a task item
   var taskLi = $("<li>").addClass("list-group-item");
@@ -12,6 +34,9 @@ var createTask = function(taskText, taskDate, taskList) {
 
   // append span and p element to parent li
   taskLi.append(taskSpan, taskP);
+
+  //Check due date
+  auditTask(taskLi);
 
 
   // append to ul list on the page
@@ -57,6 +82,7 @@ $(".list-group").on("click", "p", function() {
   textInput.trigger("focus");
 });
 
+
 $(".list-group").on("blur", "textarea", function() {
   var text = $(this)
     .val()
@@ -97,12 +123,21 @@ $(".list-group").on("click", "span", function() {
     //Swap out elements
     $(this).replaceWith(dateInput);
 
+    //Enable UI date picker
+    dateInput.datepicker({
+      minDate: 1,
+      onClose: function() {
+        //When calendar is closed, force a change event on 'dateInput'
+        $(this).trigger("change");
+      }
+    });
+
     //Automatically focus on new element
     dateInput.trigger("focus");
 });
 
 //Value of date was changed
-$(".list-group").on("blur", "input[type='text']", function() {
+$(".list-group").on("change", "input[type='text']", function() {
   //Get current text
   var date = $(this)
     .val()
@@ -130,6 +165,9 @@ $(".list-group").on("blur", "input[type='text']", function() {
 
   //Replace input with span element
   $(this).replaceWith(taskSpan);
+
+  //Pass task's li element into auditTask function to check new due date
+  auditTask($(taskSpan).closest(".list-group-item"));
 });
 
 
@@ -165,6 +203,11 @@ $("#task-form-modal .btn-primary").click(function() {
 
     saveTasks();
   }
+});
+
+//Modal date picker
+$("#modalDueDate").datepicker({
+   minDate: 1
 });
 
 // remove all tasks
